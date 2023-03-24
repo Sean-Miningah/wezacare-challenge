@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from questions.models import User, Answers, Questions
@@ -27,6 +27,7 @@ def register(request):
         return Response({'Invalid Credentials, try again'}, status=status.HTTP_409_CONFLICT)
 
 @api_view(['POST'])
+@permission_classes([AllowAny,])
 def login(request):
     """
     Authenticate user credential to be able to login 
@@ -45,11 +46,12 @@ def login(request):
 
 
 @api_view(['GET', 'POST'])
-@authentication_classes([])
+@permission_classes([IsAuthenticated])
 def question_list(request):
     """
-    List all questions
+    Create new question and list all questions
     """
+    user = request.user
 
     if request.method == 'GET':
         questions = Questions.objects.all()
@@ -57,7 +59,9 @@ def question_list(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
-        serializer = QuestionsSerializer(data=request.data)
+        data = request.data
+        data['author'] = user.id
+        serializer = QuestionsSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -65,7 +69,7 @@ def question_list(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@authentication_classes([])
+@permission_classes([IsAuthenticated])
 def question_detail(request, question_id):
     """
     Retrieve, update or delete a question

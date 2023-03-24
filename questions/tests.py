@@ -1,13 +1,14 @@
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
 from rest_framework import status
+from rest_framework_simplejwt.tokens import AccessToken
 
 from .models import Answers, Questions, User
 from .serializers import AnswersSerializer, QuestionsSerializer, UserSerializer
 
 
 class GetAllQuestions(APITestCase):
-    """ Test module to GET all question API """
+    """ Test module to test user registration and user loginI """
 
     def setUp(self):
         self.username = 'test-user'
@@ -55,3 +56,46 @@ class GetAllQuestions(APITestCase):
         }
         response = self.client.post(url, invalid_credentials, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class QuestionsTest(APITestCase):
+    """ Test module for creating questions and get questions """
+
+    def setUp(self):
+        self.username = 'testuser'
+        self.password = 'testpass'
+        self.email = 'test@email.com'
+        self.user = User.objects.create_user(
+            username=self.username, password=self.password, email=self.email
+        )
+        self.access_token = str(
+            AccessToken.for_user(self.user)
+        )
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.access_token
+        )
+
+    def tearDown(self):
+        self.user.delete
+    
+
+    def test_get_questions(self):
+        Questions.objects.create(
+            author=self.user, 
+            description="test_description"
+        )
+        Questions.objects.create(
+            author=self.user, 
+            description="test_description2"
+        )
+
+        url = reverse('questions')
+        response = self.client.get(url)
+        other_client = APIClient()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+        
+        
+
