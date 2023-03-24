@@ -29,6 +29,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=40, blank=False, unique=True)
     email = models.EmailField(null=True, blank=True)
     password = models.CharField(max_length=128, null=False)
+    is_staff = models.BooleanField(default=False)
 
     objects = CustomAccountManager()
 
@@ -44,7 +45,7 @@ class Questions(models.Model):
     the questions model
     """
     author = models.ForeignKey(User, blank=False, on_delete=models.DO_NOTHING)
-    description = models.TestField(blank=False)
+    description = models.TextField(blank=False)
 
 
 class Answers(models.Model):

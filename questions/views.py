@@ -1,20 +1,51 @@
+from django.conf import settings
+from django.contrib.auth import authenticate
 from rest_framework import status
-from rest_framework.decorators import api_view 
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from questions.models import Questions, Answers
+from questions.models import User, Answers, Questions
 from questions.serializers import QuestionsSerializer
 
 
-def register(reqeust):
-    pass
+@api_view(["POST"])
+@permission_classes([AllowAny,])
+def register(request):
+    """
+    Register new user 
+    """
+    try:
+        User.objects.create_user(
+            username=request.data.get('username'),
+            password=request.data.get('password'), 
+            email=request.data.get('email')
+        )
+        return Response({'Succefully registered, proceed to login'}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'Invalid Credentials, try again'}, status=status.HTTP_409_CONFLICT)
 
-
+@api_view(['POST'])
 def login(request):
-    pass
+    """
+    Authenticate user credential to be able to login 
+    """
+    user = authenticate(request, username=request.data.get('username'), password=request.data.get('password'))
+    if user is not None:
+        # Generate and return the JWT 
+        token = RefreshToken.for_user(user)
+        data = {
+            "access-token": str(token.access_token),
+            "refresh-token": str(token)
+        }
+        return Response(data, status=status.HTTP_202_ACCEPTED)
+    else:
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'POST'])
+@authentication_classes([])
 def question_list(request):
     """
     List all questions
@@ -34,6 +65,7 @@ def question_list(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([])
 def question_detail(request, question_id):
     """
     Retrieve, update or delete a question
@@ -59,10 +91,13 @@ def question_detail(request, question_id):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
+@api_view(['GET', 'POST'])  
+@authentication_classes([])
 def answer_question(request, question_id):
     pass 
 
-
+@api_view(['GET', 'POST'])  
+@authentication_classes([])
 def answer_detail(reqeust, question_id, answer_id):
     pass
   
