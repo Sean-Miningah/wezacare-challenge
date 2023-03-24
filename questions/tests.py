@@ -37,3 +37,21 @@ class GetAllQuestions(APITestCase):
 
         response = self.client.post(url, self.data, format='json')
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_user_login(self):
+        username = "testor"
+        password = "passi"
+        User.objects.create_user(username=username, password=password)
+        url = reverse('login')
+
+
+        response = self.client.post(url, {"username":username, "password":password}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+
+        invalid_credentials = {
+            "username": "BadUser",
+            "password": "testPassword",
+            "email": "bad@email.com"
+        }
+        response = self.client.post(url, invalid_credentials, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
