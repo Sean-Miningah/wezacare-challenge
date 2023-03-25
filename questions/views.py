@@ -47,12 +47,12 @@ def login(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def question_list(request):
     """
     Create new question and list all questions
     """
-    user = request.user
+    user = request.user if request.user.is_authenticated else None
 
     if request.method == 'GET':
         questions = Questions.objects.all()
@@ -60,6 +60,9 @@ def question_list(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
+        if user is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
         serializer = QuestionsSerializer(data=request.data)
         
         if serializer.is_valid():

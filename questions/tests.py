@@ -145,6 +145,32 @@ class QuestionsTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Questions.objects.filter(pk=question.id).exists())
 
+    def test_answer_questions(self):
+        """
+        Test saving of answers to existing questions
+        """
+        test_description = "Test Description"
+        question = Questions.objects.create(author=self.user, description=test_description)
+        url = reverse('question-answers', args=[question.id,])
+
+        # Test post a valid answer 
+        data = {
+            "description": "Test Answer"
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Test posting an invalid answer 
+        data = {}
+        response = self.client(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Test posting wrong invalid question answering 
+        url = reverse('question-answers', args=[3000000])
+        response = self.client(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
     # def tearDown(self):
     #     self.user.delete
     
