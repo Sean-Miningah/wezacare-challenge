@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from questions.models import User, Answers, Questions
-from questions.serializers import QuestionsSerializer
+from questions.serializers import QuestionsSerializer, AnswersSerializer
 
 
 @api_view(["POST"])
@@ -87,22 +87,68 @@ def question_detail(request, question_id):
         return Response(serializer.data, status.HTTP_200_OK)
      
     elif request.method == 'DELETE':
-        if request.user.id == question.id: 
+        if request.user.id == question.author.id: 
             question.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
     
 
-@api_view(['GET', 'POST'])  
-@authentication_classes([])
+@api_view(['POST',])  
+@permission_classes([IsAuthenticated])
 def answer_question(request, question_id):
     """
+    Post an answer of the question 
     """
-    pass 
+    try:
+        question = Questions.objects.get(id=question_id)
+    except Questions.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND) 
+    
+    if request.data.get('description'):
+        Answers.objects.create(description=request.data['description'], question=question, author=request.user)
+        return Response(status=status.HTTP_201_CREATED)
+    else:
+        return Response(
+            status=status.HTTP_400_BAD_REQUEST, 
+            data={'error': 'answer description cant be empty'}
+            )
 
-@api_view(['GET', 'POST'])  
-@authentication_classes([])
-def answer_detail(reqeust, question_id, answer_id):
-    pass
+
+@api_view(['PUT', 'DELETE'])  
+@permission_classes([IsAuthenticated])
+def answer_detail(request, question_id, answer_id):
+    """
+    Update or delete an answer to a question
+    """
+    user = request.user 
+
+
+    try: 
+        answer = Answers.objects.get(id=answer_id)
+        question = Questions.objects.get(id=question_id)
+    except Answers.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Questions.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PUT':
+        if user.id == answer.author.id:
+            request.data["author"] = answer.author.id
+            request.data["question"] = question.id
+            serializer = AnswersSerializer(answer, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(status.HTTP_401_UNAUTHORIZED)
+    elif request.method == 'DELETE':
+        if request.user.id == answer.author.id: 
+            answer.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+    
+
   

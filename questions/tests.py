@@ -7,7 +7,7 @@ from .models import Answers, Questions, User
 from .serializers import AnswersSerializer, QuestionsSerializer, UserSerializer
 
 
-class QuestionsTest(APITestCase):
+class AuthorisationTest(APITestCase):
     """
     Test module to test user registration and user login 
     """
@@ -19,17 +19,7 @@ class QuestionsTest(APITestCase):
             'username': self.username,
             'password': self.password
         }
-        # self.test_user = User.objects.create(
-        #     username="test-username", email="test@gmail.com", password="testpassword"
-        # )
-        # self.question_one = Questions.objects.create(
-        #     author = self.test_user, 
-        #     description = "Test_description_one"
-        # )
-        # self.question_two = Questions.objects.create(
-        #     author = self.test_user,
-        #     description = "Test_description_two"
-        # )
+
 
     def test_registration(self):
         url = reverse('registration')
@@ -89,7 +79,8 @@ class QuestionsTest(APITestCase):
         """
 
         # test empty response 
-        response = self.client.get(self.url)
+        url = reverse('app-questions')
+        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
 
@@ -107,6 +98,8 @@ class QuestionsTest(APITestCase):
         """
         Test creating a new question
         """
+        url = reverse('app-questions')
+
         data = {"description": "Test Description"}
 
         # test valid data 
@@ -145,108 +138,130 @@ class QuestionsTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Questions.objects.filter(pk=question.id).exists())
 
+
+
+
+class TestAnswers(APITestCase):
+
+    def setUp(self):
+        self.username = 'testuser'
+        self.password = 'testpass'
+        self.email = 'test@email.com'
+        self.user = User.objects.create_user(
+            username=self.username, password=self.password, email=self.email
+        )
+        self.access_token = str(
+            AccessToken.for_user(self.user)
+        )
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.access_token
+        )
+
+        self.url = reverse('app-questions')
+    
+    def tearDown(self):
+        self.user.delete
+
     def test_answer_questions(self):
         """
         Test saving of answers to existing questions
         """
         test_description = "Test Description"
         question = Questions.objects.create(author=self.user, description=test_description)
-        url = reverse('question-answers', args=[question.id,])
+        url = reverse('question-answer', args=[question.id,])
 
         # Test post a valid answer 
-        data = {
+        valid_data = {
             "description": "Test Answer"
         }
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, valid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Test posting an invalid answer 
-        data = {}
-        response = self.client(url, data, format='json')
+        invalid_data = {}
+        response = self.client.post(url, invalid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # Test posting wrong invalid question answering 
-        url = reverse('question-answers', args=[3000000])
-        response = self.client(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        invalid_url = reverse('question-answer', args=[3000000])
+        response = self.client.post(invalid_url, valid_data, format='json')
+        print(response)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-
-    # def tearDown(self):
-    #     self.user.delete
     
+class TestAnswerDetail(APITestCase):
+    
+    def setUp(self):
+        self.username = 'testuser'
+        self.password = 'testpass'
+        self.email = 'test@email.com'
+        self.user = User.objects.create_user(
+            username=self.username, password=self.password, email=self.email
+        )
+        self.access_token = str(
+            AccessToken.for_user(self.user)
+        )
 
-    # def test_get_question_list(self):
-        
-    #     url = reverse('app-questions')
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.access_token
+        )
+        self.question = Questions.objects.create(
+            description="Test Description",
+            author=self.user
+        )
 
-    #     # test empty response
-    #     response = self.client.get(url)
-    #     data = response.content.decode('utf-8')
-    #     self.assertEqual(data, '[]')
+        self.answer = Answers.objects.create(
+            description="Test Answer",
+            author=self.user,
+            question=self.question
 
-    #     # test list of questions
-    #     Questions.objects.create(
-    #         author=self.user, 
-    #         description="test_description"
-    #     )
-    #     Questions.objects.create(
-    #         author=self.user, 
-    #         description="test_description2"
-    #     )
+        )
 
-    #     response = self.client.get(url)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.url = reverse(
+            'question-answer-detail', 
+            # kwargs={
+            #     "question_id":self.question.id, 
+            #     "answer_id": self.answer.id
+            # }
+            args = [self.question.id, self.answer.id]
+        )
+    
+    def tearDown(self):
+        self.user.delete
+        self.question.delete
 
-    #     test_client = APIClient()
 
-    #     # test posting empty objects
-        
+    def test_answer_detail(self):
+        """
+        Test the updating and deleting of answers to questions 
+        """
 
-    #     response =  self.client.post(url, {}, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # testing update with valid parameters
+        valid_data = {
+            "description": "Updated Test Description"
+        }
 
-    #     #test getting questions
-    #     data = {
-    #         "description": "Test Description"
-    #         }
-    #     response = self.client.post(url, data, format='json')
-    #     self.assertEqual(response.status_code,  status.HTTP_201_CREATED,)
+        response = self.client.put(self.url, valid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    # def test_question_detail(self):
-    #     """
-    #     Test question_detail url
-    #     """
-    #     question = Questions.objects.create(author=self.user, description=self.description)
-    #     url = reverse("question-details", kwargs={'question_id': question.id} )
+        # testing updating with invalid parameters 
+        invalid_data = {
+            "descvimption": "Updated Invalid Test Description"
+        }
 
-    #     # test right question_id    
-    #     response = self.client.get(url)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.put(self.url, invalid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    #     # test update question_id
-    #     data = {
-    #         "description": "Put Request Description"
+        # testing deleting answer 
+        delete_response = self.client.delete(self.url)
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
 
-    #     }
-    #     response = self.client.put(url, data, format='json')
-    #     data_id = response.json()["id"]
-    #     self.assertEqual(int(data_id), question.id)
-        
-    #     # test retrieving a question
-    #     response = self.client.delete(url)
-    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # testing deleting invalid answer 
 
-    #     response = self.client.delete(url)
-    #     self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    #     # test wrong question_id
-    #     failed_id = 100
-    #     url = reverse("question-details", kwargs={"question_id": failed_id})
-    #     response = self.client.get(url)
-
-    #     self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        
-
-    # def test_  
-        
+        invalid_delete = self.client.delete(self.url)
+        self.assertEqual(invalid_delete.status_code, status.HTTP_404_NOT_FOUND)
+        url = reverse('question-answer-detail', kwargs={"question_id": 12020, "answer_id": 2343})
+        invalid_delete = self.client.delete(url)
+        self.assertEqual(invalid_delete.status_code, status.HTTP_404_NOT_FOUND)
 

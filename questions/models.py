@@ -44,7 +44,7 @@ class Questions(models.Model):
     """
     the questions model
     """
-    author = models.ForeignKey(User, blank=False, on_delete=models.DO_NOTHING)
+    author = models.ForeignKey(User, blank=False, on_delete=models.CASCADE)
     description = models.TextField(blank=False)
 
 
@@ -52,5 +52,6 @@ class Answers(models.Model):
     """
     model of answers to question in questions model  
     """
-    question = models.ForeignKey(Questions, blank=False, on_delete=models.DO_NOTHING)
+    question = models.ForeignKey(Questions, blank=False, on_delete=models.CASCADE)
     description = models.TextField(blank=False)
+    author = models.ForeignKey(User, blank=False, on_delete=models.CASCADE)
