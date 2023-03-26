@@ -35,7 +35,8 @@ class UserCreationForm(forms.ModelForm):
     
 
 class UserChangeForm(forms.ModelForm):
-    """A form for updating users. Includes all the fields on
+    """
+    A form for updating users. Includes all the fields on
     the user, but replaces the password field with admin's
     disabled password hash display field.
     """
@@ -43,7 +44,7 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('email', 'username', 'password')
+        fields = ('email', 'username', 'password', 'is_staff')
 
 
 class UserAdmin(BaseUserAdmin):
@@ -55,46 +56,46 @@ class UserAdmin(BaseUserAdmin):
     list_filter=('username',)
 
     fieldsets = (
-        (None, {'fields': ('email', 'username', 'password')}),
+        (None, {'fields': ('email', 'username', 'password', 'is_staff')}),
     )
 
     add_fieldsets = (
         (None, {
           'classes': ('wide',),
-          'fields': ('username', 'email', 'password1', 'password2')
-        })
+          'fields': ('username', 'email', 'password1', 'password2', 'is_staff')
+        }),
     )
 
 
 class QuestionAdmin(admin.ModelAdmin):
-    list_dislay = ('id', 'description', 'author')
+    list_display = ('id', 'description', 'author')
 
     fieldsets = (
         (None, {
-          'fields': ('id', 'description', 'author'),
+          'fields': ('description', 'author'),
         }),
     )
 
     add_fieldsets = (
         (None, {
-          'fields': ('id', 'description', 'author'),
-        })
+          'fields': ('description', 'author'),
+        }),
     )
 
 
 class AnswerAdmin(admin.ModelAdmin):
-    list_dislay = ('id', 'description', 'question')
+    list_display = ('description', 'question', 'author')
 
     fieldsets = (
         (None, {
-          'fields': ('id', 'description', 'question'),
+          'fields': ('description', 'question', 'author'),
         }),
     )
 
     add_fieldsets = (
         (None, {
-          'fields': ('id', 'description', 'question'),
-        })
+          'fields': ('description', 'question', 'author'),
+        }),
     )
 
 admin.site.register(User, UserAdmin)

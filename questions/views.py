@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from questions.models import User, Answers, Questions
-from questions.serializers import QuestionsSerializer, AnswersSerializer
+from questions.serializers import QuestionsSerializer, AnswersSerializer, QuestionAnswersSerializer
 
 
 @api_view(["POST"])
@@ -28,12 +28,13 @@ def register(request):
         return Response({'Invalid Credentials, try again'}, status=status.HTTP_409_CONFLICT)
 
 @api_view(['POST'])
-@permission_classes([AllowAny,])
+@permission_classes([AllowAny])
 def login(request):
     """
     Authenticate user credential to be able to login 
     """
     user = authenticate(request, username=request.data.get('username'), password=request.data.get('password'))
+
     if user is not None:
         # Generate and return the JWT 
         token = RefreshToken.for_user(user)
@@ -78,12 +79,15 @@ def question_detail(request, question_id):
     Retrieve and delete a question
     """
     try: 
-        question = Questions.objects.prefetch_related('answers_set').get(pk=question_id)
+        question = Questions.objects.get(pk=question_id)
+        answers = [] 
+        if Answers.objects.filter(question=question).exists():
+            answers = Answers.objects.filter(question=question)
     except Questions.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
-        serializer = QuestionsSerializer(question)
+        serializer = QuestionAnswersSerializer({'question': question, 'answers': answers})
         return Response(serializer.data, status.HTTP_200_OK)
      
     elif request.method == 'DELETE':

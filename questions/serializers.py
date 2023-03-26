@@ -8,10 +8,11 @@ class UserSerializer(serializers.ModelSerializer):
         model = User 
         fields = '__all__'
 
+
 class QuestionsSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
-    class Meta: 
-        model = Questions 
+    class Meta:
+        model = Questions
         exclude = ('id',)
 
 
@@ -30,19 +31,10 @@ class QAnswerSerializer(serializers.ModelSerializer):
         fields = ['description']
 
 
-class QuestionAnswersSerializer(serializers.ModelSerializer):
+class QuestionAnswersSerializer(serializers.Serializer):
     """
     Question Answers and it answers serializer 
     """
+    question = QuestionsSerializer()
     answers = QAnswerSerializer(many=True, read_only=True)
 
-    class Meta: 
-        model = Questions 
-        fields = ['id', 'author', 'description', 'answers']
-
-    def create(self, validated_data):
-        answers_data = validated_data.pop('anwers')
-        question = Questions.objects.create(**validated_data)
-        for answer_data in answers_data: 
-            Answers.objects.create(question=question, **answer_data)
-        return question

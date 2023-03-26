@@ -47,6 +47,9 @@ class Questions(models.Model):
     author = models.ForeignKey(User, blank=False, on_delete=models.CASCADE)
     description = models.TextField(blank=False)
 
+    def __str__(self):
+        return self.author.username
+
 
 class Answers(models.Model):
     """
@@ -55,3 +58,5 @@ class Answers(models.Model):
     question = models.ForeignKey(Questions, blank=False, on_delete=models.CASCADE)
     description = models.TextField(blank=False)
     author = models.ForeignKey(User, blank=False, on_delete=models.CASCADE)
+
+    
