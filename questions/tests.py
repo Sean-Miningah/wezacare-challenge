@@ -4,7 +4,6 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 
 from .models import Answers, Questions, User
-from .serializers import AnswersSerializer, QuestionsSerializer, UserSerializer
 
 
 class AuthorisationTest(APITestCase):
