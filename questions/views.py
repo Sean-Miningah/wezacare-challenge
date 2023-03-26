@@ -98,21 +98,24 @@ def question_detail(request, question_id):
 @permission_classes([IsAuthenticated])
 def answer_question(request, question_id):
     """
-    Post an answer of the question 
+    Post an answer to a question, only available to questions not from signedin user.
     """
     try:
         question = Questions.objects.get(id=question_id)
     except Questions.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND) 
     
-    if request.data.get('description'):
-        Answers.objects.create(description=request.data['description'], question=question, author=request.user)
-        return Response(status=status.HTTP_201_CREATED)
+    if request.user.id == question.author.id:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
     else:
-        return Response(
-            status=status.HTTP_400_BAD_REQUEST, 
-            data={'error': 'answer description cant be empty'}
-            )
+        if request.data.get('description'):
+            Answers.objects.create(description=request.data['description'], question=question, author=request.user)
+            return Response(status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, 
+                data={'error': 'answer description cant be empty'}
+                )
 
 
 @api_view(['PUT', 'DELETE'])  

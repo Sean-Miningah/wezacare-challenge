@@ -150,6 +150,11 @@ class TestAnswers(APITestCase):
         self.user = User.objects.create_user(
             username=self.username, password=self.password, email=self.email
         )
+        self.user2 = User.objects.create_user(
+            username="user2test",
+            password="user2passwordtest",
+            email="user2@test.com"
+        )
         self.access_token = str(
             AccessToken.for_user(self.user)
         )
@@ -171,12 +176,18 @@ class TestAnswers(APITestCase):
         question = Questions.objects.create(author=self.user, description=test_description)
         url = reverse('question-answer', args=[question.id,])
 
-        # Test post a valid answer 
+        # Test post a valid answer wrong question 
         valid_data = {
             "description": "Test Answer"
         }
         response = self.client.post(url, valid_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Test post a valid answer to right question
+        valid_question = Questions.objects.create(author=self.user2, description=test_description)
+        url = reverse('question-answer', args=[valid_question.id,])
+        valid_response = self.client.post(url, valid_data, format='json')
+        self.assertEqual(valid_response.status_code, status.HTTP_201_CREATED)
 
         # Test posting an invalid answer 
         invalid_data = {}
@@ -186,7 +197,6 @@ class TestAnswers(APITestCase):
         # Test posting wrong invalid question answering 
         invalid_url = reverse('question-answer', args=[3000000])
         response = self.client.post(invalid_url, valid_data, format='json')
-        print(response)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     
